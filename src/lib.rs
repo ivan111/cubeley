@@ -90,9 +90,9 @@ impl State {
 
     /// 巡回置換から新しいキューブを作る。
     pub fn cycles(cp: &Vec<u8>) -> State {
-        let mut p = Self::SOLVED.p.clone();
+        let mut p = Self::SOLVED.p;
 
-        if cp.len() != 0 {
+        if !cp.is_empty() {
             let first = cp[0];
             let last = cp.last().unwrap();
 
@@ -153,8 +153,8 @@ impl State {
     pub fn apply(&self, mv: &State) -> State {
         let mut p = [0; NUM_P];
 
-        for i in 0..NUM_P {
-            p[i] = mv.p[self.p[i] as usize];
+        for (i, v) in self.p.into_iter().enumerate() {
+            p[i] = mv.p[v as usize];
         }
 
         State { p }
@@ -164,11 +164,7 @@ impl State {
     pub fn apply_moves(&self, moves: &HashMap<String, State>, mvs: &str) -> State {
         let mut cube = self.clone();
 
-        for name in mvs.split(' ') {
-            if name == "" {
-                continue;
-            }
-
+        for name in mvs.split_whitespace() {
             match moves.get(name) {
                 None => eprintln!("無効な操作: {}", name),
                 Some(mv) => cube = cube.apply(mv),
@@ -200,19 +196,19 @@ impl State {
         let down = self.get_face_colors(Face::Down);
 
         for i in 0..3 {
-            println!("    {}{}{}", color_str!(up[i*3 + 0]), color_str!(up[i*3 + 1]), color_str!(up[i*3 + 2]));
+            println!("    {}{}{}", color_str!(up[i*3]), color_str!(up[i*3 + 1]), color_str!(up[i*3 + 2]));
         }
 
         for i in 0..3 {
             println!("{}{}{} {}{}{} {}{}{} {}{}{}",
-                     color_str!(left[i*3 + 0]), color_str!(left[i*3 + 1]), color_str!(left[i*3 + 2]),
-                     color_str!(front[i*3 + 0]), color_str!(front[i*3 + 1]), color_str!(front[i*3 + 2]),
-                     color_str!(right[i*3 + 0]), color_str!(right[i*3 + 1]), color_str!(right[i*3 + 2]),
-                     color_str!(back[i*3 + 0]), color_str!(back[i*3 + 1]), color_str!(back[i*3 + 2]));
+                     color_str!(left[i*3]), color_str!(left[i*3 + 1]), color_str!(left[i*3 + 2]),
+                     color_str!(front[i*3]), color_str!(front[i*3 + 1]), color_str!(front[i*3 + 2]),
+                     color_str!(right[i*3]), color_str!(right[i*3 + 1]), color_str!(right[i*3 + 2]),
+                     color_str!(back[i*3]), color_str!(back[i*3 + 1]), color_str!(back[i*3 + 2]));
         }
 
         for i in 0..3 {
-            println!("    {}{}{}", color_str!(down[i*3 + 0]), color_str!(down[i*3 + 1]), color_str!(down[i*3 + 2]));
+            println!("    {}{}{}", color_str!(down[i*3]), color_str!(down[i*3 + 1]), color_str!(down[i*3 + 2]));
         }
     }
 
@@ -281,7 +277,7 @@ impl State {
             print!("({})", cp.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(" "));
         }
 
-        println!("");
+        println!();
     }
 }
 

@@ -94,7 +94,7 @@ fn main() {
         "M", "E", "S",
     ] {
         let st = moves.get(name).unwrap();
-        print_state(&name, &st);
+        print_state(name, st);
 
         let st2 = st * st;
         let name2 = String::from(name) + "2";
