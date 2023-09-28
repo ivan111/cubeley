@@ -11,11 +11,7 @@ use colored::*;
 /// キューブの動きも状態で表す。
 #[derive(Debug, Clone, PartialEq)]
 pub struct State {
-    cc: [u8; 6],  // センターカラー。[上, 前, 右, 下, 後, 左]
-    cp: [u8; 8],  // コーナー位置
-    co: [u8; 8],  // コーナー方向
-    ep: [u8; 12],  // エッジ位置
-    eo: [u8; 12],  // エッジ方向
+    p: [u8; 54],  // インデックス => 値の置換[上9, 前9, 右9, 下9, 後9, 左9]。pは値を変えてはいけない。
 }
 
 /// キューブの色
@@ -29,75 +25,25 @@ pub enum Color {
     Orange,
 }
 
-// センターピース色
-static CENTER_COLORS: [Color; 6] = [
-    Color::White,
-    Color::Green,
-    Color::Red,
-    Color::Yellow,
-    Color::Blue,
-    Color::Orange,
-];
-
-// コーナーピース色
-static CORNER_COLORS: [[Color; 3]; 8] = [
-    [Color::White, Color::Blue, Color::Orange],
-    [Color::White, Color::Red, Color::Blue],
-    [Color::White, Color::Green, Color::Red],
-    [Color::White, Color::Orange, Color::Green],
-    [Color::Yellow, Color::Orange, Color::Blue],
-    [Color::Yellow, Color::Blue, Color::Red],
-    [Color::Yellow, Color::Red, Color::Green],
-    [Color::Yellow, Color::Green, Color::Orange],
-];
-
-// エッジピース色
-static EDGE_COLORS: [[Color; 2]; 12] = [
-    [Color::Blue, Color::Orange],
-    [Color::Blue, Color::Red],
-    [Color::Green, Color::Red],
-    [Color::Green, Color::Orange],
-    [Color::White, Color::Blue],
-    [Color::White, Color::Red],
-    [Color::White, Color::Green],
-    [Color::White, Color::Orange],
-    [Color::Yellow, Color::Blue],
-    [Color::Yellow, Color::Red],
-    [Color::Yellow, Color::Green],
-    [Color::Yellow, Color::Orange],
-];
-
-macro_rules! corner_color {
-    // corner_color(self, 0) は以下のように展開される
-    // CORNER_COLORS[self.cp[0] as usize][self.co[0] as usize]
-    ($self:ident, $perm:expr) => ({
-        let perm_val = &$perm;
-        CORNER_COLORS[$self.cp[*perm_val] as usize][$self.co[*perm_val] as usize]
-    });
-
-    // corner_color(self, 0, 1) は以下のように展開される
-    // CORNER_COLORS[self.cp[0] as usize][((self.co[0] + 1) % 3) as usize]
-    ($self:ident, $perm:expr, $orient:expr) => ({
-        let perm_val = &$perm;
-        CORNER_COLORS[$self.cp[*perm_val] as usize][(($self.co[*perm_val] + $orient) % 3) as usize]
-    });
+/// キューブの面
+pub enum Face {
+    Up,
+    Front,
+    Right,
+    Down,
+    Back,
+    Left,
 }
 
-macro_rules! edge_color {
-    // edge_color(self, 0) は以下のように展開される
-    // EDGE_COLORS[self.ep[0] as usize][self.eo[0] as usize]
-    ($self:ident, $perm:expr) => ({
-        let perm_val = &$perm;
-        EDGE_COLORS[$self.ep[*perm_val] as usize][$self.eo[*perm_val] as usize]
-    });
-
-    // edge_color(self, 0, 1) は以下のように展開される
-    // EDGE_COLORS[self.ep[0] as usize][((self.eo[0] + 1) % 2) as usize]
-    ($self:ident, $perm:expr, $orient:expr) => ({
-        let perm_val = &$perm;
-        EDGE_COLORS[$self.ep[*perm_val] as usize][(($self.eo[*perm_val] + $orient) % 2) as usize]
-    });
-}
+// 色への変換マップ
+static COLOR_MAP: [Color; 54] = [
+    Color::White, Color::White, Color::White, Color::White, Color::White, Color::White, Color::White, Color::White, Color::White,
+    Color::Green, Color::Green, Color::Green, Color::Green, Color::Green, Color::Green, Color::Green, Color::Green, Color::Green,
+    Color::Red, Color::Red, Color::Red, Color::Red, Color::Red, Color::Red, Color::Red, Color::Red, Color::Red,
+    Color::Yellow, Color::Yellow, Color::Yellow, Color::Yellow, Color::Yellow, Color::Yellow, Color::Yellow, Color::Yellow, Color::Yellow,
+    Color::Blue, Color::Blue, Color::Blue, Color::Blue, Color::Blue, Color::Blue, Color::Blue, Color::Blue, Color::Blue,
+    Color::Orange, Color::Orange, Color::Orange, Color::Orange, Color::Orange, Color::Orange, Color::Orange, Color::Orange, Color::Orange,
+];
 
 // キューブの色から色付きの文字列をつくる。
 macro_rules! color_str {
@@ -116,54 +62,75 @@ macro_rules! color_str {
 impl State {
     /// 上が白で、前が緑の状態のキューブ。
     pub const SOLVED: State = State {
-        cc: [0, 1, 2, 3, 4, 5],
-        cp: [0, 1, 2, 3, 4, 5, 6, 7],
-        co: [0; 8],
-        ep: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-        eo: [0; 12],
+        p: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+            10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+            20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+            30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+            40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+            50, 51, 52, 53],
     };
 
-    /// 上が白で、前が緑の状態の新しいキューブを作る。
-    pub fn new() -> State {
-        Self::SOLVED
+    /// 新しいキューブを作る。
+    pub fn new(p: [u8; 54]) -> State {
+        State { p }
+    }
+
+    /// 巡回置換から新しいキューブを作る。
+    pub fn cycles(cp: &Vec<u8>) -> State {
+        let mut p = Self::SOLVED.p.clone();
+
+        if cp.len() != 0 {
+            let first = cp[0];
+            let last = cp.last().unwrap();
+
+            for v in cp.windows(2) {
+                p[v[0] as usize] = v[1];
+            }
+
+            p[*last as usize] = first;
+        }
+
+        State { p }
+    }
+
+    /// 巡回置換の積から新しいキューブを作る。
+    pub fn product_of_cycles(pcp: &Vec<Vec<u8>>) -> State {
+        let mut st = Self::SOLVED.clone();
+
+        for cp in pcp {
+            st = st.apply(&Self::cycles(cp));
+        }
+
+        st
+    }
+
+    /// pを取得する。
+    pub fn get_p(&self) -> [u8; 54] {
+        self.p
     }
 
     /// キューブがそろっているならtrueを返す。
     /// 回転記号x, y, z, E, M, Sなどセンターキューブを動かしていない場合は、
     /// SOLVEDと==で比較したほうが速い。
     pub fn is_solved(&self) -> bool {
-        let up = self.get_up_colors();
-        let front = self.get_front_colors();
-        let right = self.get_right_colors();
-        let down = self.get_down_colors();
-        let back = self.get_back_colors();
+        let p = &self.get_prime().p;
 
-        up[1..].iter().all(|c| *c == up[0]) &&
-        front[1..].iter().all(|c| *c == front[0]) &&
-        right[1..].iter().all(|c| *c == right[0]) &&
-        down[1..].iter().all(|c| *c == down[0]) &&
-        back[1..].iter().all(|c| *c == back[0])
+        p[1..9].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[p[0] as usize]) &&
+        p[10..18].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[p[9] as usize]) &&
+        p[19..27].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[p[18] as usize]) &&
+        p[28..36].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[p[27] as usize]) &&
+        p[37..45].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[p[36] as usize])
     }
 
     /// キューブを動かす。定義からわかるがselfは変化しない。
     pub fn apply(&self, mv: &State) -> State {
-        let mut cube = State{cc: [0; 6], cp: [0; 8], co: [0; 8], ep: [0; 12], eo: [0; 12]};
+        let mut p = [0; 54];
 
-        for i in 0..6 {
-            cube.cc[i] = self.cc[mv.cc[i] as usize];
+        for i in 0..54 {
+            p[i] = mv.p[self.p[i] as usize];
         }
 
-        for i in 0..8 {
-            cube.cp[i] = self.cp[mv.cp[i] as usize];
-            cube.co[i] = (self.co[mv.cp[i] as usize] + mv.co[i]) % 3;
-        }
-
-        for i in 0..12 {
-            cube.ep[i] = self.ep[mv.ep[i] as usize];
-            cube.eo[i] = (self.eo[mv.ep[i] as usize] + mv.eo[i]) % 2;
-        }
-
-        cube
+        State { p }
     }
 
     /// 回転記号を指定してキューブを動かす。定義からわかるがselfは変化しない。
@@ -184,15 +151,26 @@ impl State {
         cube
     }
 
+    /// 指定した動きの逆の動きを取得する。
+    pub fn get_prime(&self) -> State {
+        let mut p = [0_u8; 54];
+
+        for (i, v) in self.p.iter().enumerate() {
+            p[*v as usize] = i as u8;
+        }
+
+        State { p }
+    }
+
     /// キューブの状態を端末に出力する。
     /// 端末はtrueカラーに対応している前提で書いている。
     pub fn print(&self) {
-        let up = self.get_up_colors();
-        let left = self.get_left_colors();
-        let front = self.get_front_colors();
-        let right = self.get_right_colors();
-        let back = self.get_back_colors();
-        let down = self.get_down_colors();
+        let up = self.get_face_colors(Face::Up);
+        let left = self.get_face_colors(Face::Left);
+        let front = self.get_face_colors(Face::Front);
+        let right = self.get_face_colors(Face::Right);
+        let back = self.get_face_colors(Face::Back);
+        let down = self.get_face_colors(Face::Down);
 
         for i in 0..3 {
             println!("    {}{}{}", color_str!(up[i*3 + 0]), color_str!(up[i*3 + 1]), color_str!(up[i*3 + 2]));
@@ -211,104 +189,18 @@ impl State {
         }
     }
 
-    /// 上面の色を取得する。
-    pub fn get_up_colors(&self) -> [Color; 9] {
+    /// キューブ面の色を取得する。
+    pub fn get_face_colors(&self, face: Face) -> [Color; 9] {
         let mut colors = [Color::White; 9];
 
-        colors[0] = corner_color!(self, 0);
-        colors[1] = edge_color!(self, 4);
-        colors[2] = corner_color!(self, 1);
-        colors[3] = edge_color!(self, 7);
-        colors[4] = CENTER_COLORS[self.cc[0] as usize];
-        colors[5] = edge_color!(self, 5);
-        colors[6] = corner_color!(self, 3);
-        colors[7] = edge_color!(self, 6);
-        colors[8] = corner_color!(self, 2);
+        let start = face as usize * 9;
+        let end = start + 9;
 
-        colors
-    }
+        let p = &self.get_prime().p;
 
-    /// 正面の色を取得する。
-    pub fn get_front_colors(&self) -> [Color; 9] {
-        let mut colors = [Color::White; 9];
-
-        colors[0] = corner_color!(self, 3, 2);
-        colors[1] = edge_color!(self, 6, 1);
-        colors[2] = corner_color!(self, 2, 1);
-        colors[3] = edge_color!(self, 3);
-        colors[4] = CENTER_COLORS[self.cc[1] as usize];
-        colors[5] = edge_color!(self, 2);
-        colors[6] = corner_color!(self, 7, 1);
-        colors[7] = edge_color!(self, 10, 1);
-        colors[8] = corner_color!(self, 6, 2);
-
-        colors
-    }
-
-    /// 右面の色を取得する。
-    pub fn get_right_colors(&self) -> [Color; 9] {
-        let mut colors = [Color::White; 9];
-
-        colors[0] = corner_color!(self, 2, 2);
-        colors[1] = edge_color!(self, 5, 1);
-        colors[2] = corner_color!(self, 1, 1);
-        colors[3] = edge_color!(self, 2, 1);
-        colors[4] = CENTER_COLORS[self.cc[2] as usize];
-        colors[5] = edge_color!(self, 1, 1);
-        colors[6] = corner_color!(self, 6, 1);
-        colors[7] = edge_color!(self, 9, 1);
-        colors[8] = corner_color!(self, 5, 2);
-
-        colors
-    }
-
-    /// 下面の色を取得する。
-    pub fn get_down_colors(&self) -> [Color; 9] {
-        let mut colors = [Color::White; 9];
-
-        colors[0] = corner_color!(self, 7);
-        colors[1] = edge_color!(self, 10);
-        colors[2] = corner_color!(self, 6);
-        colors[3] = edge_color!(self, 11);
-        colors[4] = CENTER_COLORS[self.cc[3] as usize];
-        colors[5] = edge_color!(self, 9);
-        colors[6] = corner_color!(self, 4);
-        colors[7] = edge_color!(self, 8);
-        colors[8] = corner_color!(self, 5);
-
-        colors
-    }
-
-    /// 後面の色を取得する。
-    pub fn get_back_colors(&self) -> [Color; 9] {
-        let mut colors = [Color::White; 9];
-
-        colors[0] = corner_color!(self, 1, 2);
-        colors[1] = edge_color!(self, 4, 1);
-        colors[2] = corner_color!(self, 0, 1);
-        colors[3] = edge_color!(self, 1);
-        colors[4] = CENTER_COLORS[self.cc[4] as usize];
-        colors[5] = edge_color!(self, 0);
-        colors[6] = corner_color!(self, 5, 1);
-        colors[7] = edge_color!(self, 8, 1);
-        colors[8] = corner_color!(self, 4, 2);
-
-        colors
-    }
-
-    /// 左面の色を取得する。
-    pub fn get_left_colors(&self) -> [Color; 9] {
-        let mut colors = [Color::White; 9];
-
-        colors[0] = corner_color!(self, 0, 2);
-        colors[1] = edge_color!(self, 7, 1);
-        colors[2] = corner_color!(self, 3, 1);
-        colors[3] = edge_color!(self, 0, 1);
-        colors[4] = CENTER_COLORS[self.cc[5] as usize];
-        colors[5] = edge_color!(self, 3, 1);
-        colors[6] = corner_color!(self, 4, 1);
-        colors[7] = edge_color!(self, 11, 1);
-        colors[8] = corner_color!(self, 7, 2);
+        for (i, pi) in (start..end).enumerate() {
+            colors[i] = COLOR_MAP[p[pi] as usize]
+        }
 
         colors
     }
