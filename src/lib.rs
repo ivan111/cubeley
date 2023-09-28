@@ -7,11 +7,13 @@ use std::collections::HashMap;
 
 use colored::*;
 
+pub const NUM_P: usize = 54;
+
 /// キューブの状態を表す。
 /// キューブの動きも状態で表す。
 #[derive(Debug, Clone, PartialEq)]
 pub struct State {
-    p: [u8; 54],  // インデックス => 値の置換[上9, 前9, 右9, 下9, 後9, 左9]。pは値を変えてはいけない。
+    p: [u8; NUM_P],  // インデックス => 値の置換[上9, 前9, 右9, 下9, 後9, 左9]。pは値を変えてはいけない。
 }
 
 /// キューブの色
@@ -36,7 +38,7 @@ pub enum Face {
 }
 
 // 色への変換マップ
-static COLOR_MAP: [Color; 54] = [
+static COLOR_MAP: [Color; NUM_P] = [
     Color::White, Color::White, Color::White, Color::White, Color::White, Color::White, Color::White, Color::White, Color::White,
     Color::Green, Color::Green, Color::Green, Color::Green, Color::Green, Color::Green, Color::Green, Color::Green, Color::Green,
     Color::Red, Color::Red, Color::Red, Color::Red, Color::Red, Color::Red, Color::Red, Color::Red, Color::Red,
@@ -71,7 +73,18 @@ impl State {
     };
 
     /// 新しいキューブを作る。
-    pub fn new(p: [u8; 54]) -> State {
+    pub fn new(p: [u8; NUM_P]) -> State {
+        let st = State { p };
+
+        if !st.is_valid_permutation() {
+            panic!("不正な置換: {:?}", st.p);
+        }
+
+        st
+    }
+
+    /// 新しいキューブを作る。
+    fn no_check_new(p: [u8; NUM_P]) -> State {
         State { p }
     }
 
@@ -83,14 +96,28 @@ impl State {
             let first = cp[0];
             let last = cp.last().unwrap();
 
+            if *last as usize >= NUM_P {
+                panic!("不正な値: {}", last);
+            }
+
             for v in cp.windows(2) {
+                if v[0] as usize >= NUM_P {
+                    panic!("不正な値: {}", v[0]);
+                }
+
                 p[v[0] as usize] = v[1];
             }
 
             p[*last as usize] = first;
         }
 
-        State { p }
+        let st = State { p };
+
+        if !st.is_valid_permutation() {
+            panic!("不正な置換: {:?}", st.p);
+        }
+
+        st
     }
 
     /// 巡回置換の積から新しいキューブを作る。
@@ -105,7 +132,7 @@ impl State {
     }
 
     /// pを取得する。
-    pub fn get_p(&self) -> [u8; 54] {
+    pub fn get_p(&self) -> [u8; NUM_P] {
         self.p
     }
 
@@ -124,9 +151,9 @@ impl State {
 
     /// キューブを動かす。定義からわかるがselfは変化しない。
     pub fn apply(&self, mv: &State) -> State {
-        let mut p = [0; 54];
+        let mut p = [0; NUM_P];
 
-        for i in 0..54 {
+        for i in 0..NUM_P {
             p[i] = mv.p[self.p[i] as usize];
         }
 
@@ -153,7 +180,7 @@ impl State {
 
     /// 指定した動きの逆の動きを取得する。
     pub fn get_prime(&self) -> State {
-        let mut p = [0_u8; 54];
+        let mut p = [0_u8; NUM_P];
 
         for (i, v) in self.p.iter().enumerate() {
             p[*v as usize] = i as u8;
@@ -203,6 +230,58 @@ impl State {
         }
 
         colors
+    }
+
+    /// 置換として正しい形式か？
+    fn is_valid_permutation(&self) -> bool {
+        let mut p = self.p.to_vec();
+        p.sort();
+
+        p == Self::SOLVED.p
+    }
+
+    /// 巡回置換の積を返す。
+    pub fn get_cycles(&self) -> Vec<Vec<u8>> {
+        let mut used = [false; NUM_P];
+        let mut pcp = vec![];
+
+        for i in 0..NUM_P {
+            if i == self.p[i] as usize || used[i] {
+                continue;
+            }
+
+            used[i] = true;
+
+            let mut cp = vec![i as u8];
+
+            let mut v = self.p[i];
+
+            while i != v as usize {
+                used[v as usize] = true;
+                cp.push(v);
+                v = self.p[v as usize];
+            }
+
+            pcp.push(cp);
+        }
+
+        pcp
+    }
+
+    /// 巡回置換の積を出力する。
+    pub fn print_cycles(&self) {
+        let pcp = self.get_cycles();
+
+        if pcp.is_empty() {
+            println!("()");
+            return
+        }
+
+        for cp in pcp {
+            print!("({})", cp.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(" "));
+        }
+
+        println!("");
     }
 }
 

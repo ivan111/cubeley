@@ -5,7 +5,7 @@ use cube::State;
 fn print_state(name: &str, s: &State) {
     let p = s.get_p();
 
-    println!("    moves.insert(String::from(\"{}\"), State::new({:?}));", name, p);
+    println!("    moves.insert(String::from(\"{}\"), State::no_check_new({:?}));", name, p);
 }
 
 fn main() {
