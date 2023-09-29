@@ -4,7 +4,7 @@ use cube;
 fn test_scramble() {
     let moves = cube::moves::new();
 
-    let solved = &cube::State::SOLVED;
+    let solved = cube::State::new_solved();
     let scramble = "U' F' D2 R U2 R' U2 F2 R D2 L2 D2 R' B U' L' B2 D2 B2 U2";
     let cb = solved.apply_moves(&moves, scramble);
 
@@ -27,7 +27,7 @@ fn test_scramble() {
 fn test_checkered_pattern() {
     let moves = cube::moves::new();
 
-    let solved = &cube::State::SOLVED;
+    let solved = cube::State::new_solved();
     let scramble = "M2 E2 S2";
     let cb = solved.apply_moves(&moves, scramble);
 

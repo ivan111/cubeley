@@ -13,7 +13,7 @@ pub const NUM_P: usize = 54;
 /// キューブの動きも状態で表す。
 #[derive(Debug, Clone, PartialEq)]
 pub struct State {
-    p: [u8; NUM_P],  // インデックス => 値の置換[上9, 前9, 右9, 下9, 後9, 左9]。pは値を変えてはいけない。
+    p: Box<[u8; NUM_P]>,  // インデックス => 値の置換[上9, 前9, 右9, 下9, 後9, 左9]。pは値を変えてはいけない。
 }
 
 /// キューブの色
@@ -61,19 +61,26 @@ macro_rules! color_str {
     };
 }
 
+
+/// 上が白で、前が緑の状態のキューブ。
+const SOLVED_P: [u8; NUM_P] = [
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+    40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+    50, 51, 52, 53
+];
+
+
 impl State {
-    /// 上が白で、前が緑の状態のキューブ。
-    pub const SOLVED: State = State {
-        p: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-            10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-            20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-            30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
-            40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
-            50, 51, 52, 53],
-    };
+    /// 上が白で、前が緑の新しいキューブを作る。
+    pub fn new_solved() -> State {
+        State { p: Box::new(SOLVED_P) }
+    }
 
     /// 新しいキューブを作る。
-    pub fn new(p: [u8; NUM_P]) -> State {
+    pub fn new(p: Box<[u8; NUM_P]>) -> State {
         let st = State { p };
 
         if !st.is_valid_permutation() {
@@ -84,34 +91,26 @@ impl State {
     }
 
     /// 新しいキューブを作る。
-    fn no_check_new(p: [u8; NUM_P]) -> State {
+    fn no_check_new(p: Box<[u8; NUM_P]>) -> State {
         State { p }
     }
 
     /// 巡回置換から新しいキューブを作る。
     pub fn cycles(cp: &Vec<u8>) -> State {
-        let mut p = Self::SOLVED.p;
+        let mut p = SOLVED_P;
 
         if !cp.is_empty() {
             let first = cp[0];
             let last = cp.last().unwrap();
 
-            if *last as usize >= NUM_P {
-                panic!("不正な値: {}", last);
-            }
-
             for v in cp.windows(2) {
-                if v[0] as usize >= NUM_P {
-                    panic!("不正な値: {}", v[0]);
-                }
-
                 p[v[0] as usize] = v[1];
             }
 
             p[*last as usize] = first;
         }
 
-        let st = State { p };
+        let st = State { p: Box::new(p) };
 
         if !st.is_valid_permutation() {
             panic!("不正な置換: {:?}", st.p);
@@ -122,7 +121,7 @@ impl State {
 
     /// 巡回置換の積から新しいキューブを作る。
     pub fn product_of_cycles(pcp: &Vec<Vec<u8>>) -> State {
-        let mut st = Self::SOLVED.clone();
+        let mut st = Self::new_solved();
 
         for cp in pcp {
             st = st.apply(&Self::cycles(cp));
@@ -133,7 +132,7 @@ impl State {
 
     /// pを取得する。
     pub fn get_p(&self) -> [u8; NUM_P] {
-        self.p
+        *self.p
     }
 
     /// キューブがそろっているならtrueを返す。
@@ -157,7 +156,7 @@ impl State {
             p[i] = mv.p[v as usize];
         }
 
-        State { p }
+        State { p: Box::new(p) }
     }
 
     /// 回転記号を指定してキューブを動かす。定義からわかるがselfは変化しない。
@@ -182,7 +181,7 @@ impl State {
             p[*v as usize] = i as u8;
         }
 
-        State { p }
+        State { p: Box::new(p) }
     }
 
     /// キューブの状態を端末に出力する。
@@ -233,7 +232,7 @@ impl State {
         let mut p = self.p.to_vec();
         p.sort();
 
-        p == Self::SOLVED.p
+        *p == SOLVED_P
     }
 
     /// 巡回置換の積を返す。
@@ -282,10 +281,10 @@ impl State {
 }
 
 // *演算子でキューブを動かす。
-impl ops::Mul<&State> for &State {
+impl ops::Mul for &State {
     type Output = State;
 
-    fn mul(self, rhs: &State) -> Self::Output {
+    fn mul(self, rhs: Self) -> Self::Output {
         self.apply(rhs)
     }
 }
