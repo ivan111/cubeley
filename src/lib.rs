@@ -11,13 +11,13 @@ pub const NUM_P: usize = 54;
 
 /// キューブの状態を表す。
 /// キューブの動きも状態で表す。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct State {
     p: Box<[u8; NUM_P]>,  // インデックス => 値の置換[上9, 前9, 右9, 下9, 後9, 左9]。pは値を変えてはいけない。
 }
 
 /// キューブの色
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Color {
     White,
     Green,
@@ -79,6 +79,11 @@ impl State {
         State { p: Box::new(SOLVED_P) }
     }
 
+    /// 指定した動きを取得する。
+    pub fn get_move(name: moves::MOVES) -> State {
+        State { p: Box::new(moves::MOVES_P[name as usize]) }
+    }
+
     /// 新しいキューブを作る。
     pub fn new(p: Box<[u8; NUM_P]>) -> State {
         let st = State { p };
@@ -88,11 +93,6 @@ impl State {
         }
 
         st
-    }
-
-    /// 新しいキューブを作る。
-    fn no_check_new(p: Box<[u8; NUM_P]>) -> State {
-        State { p }
     }
 
     /// 巡回置換から新しいキューブを作る。
@@ -160,17 +160,36 @@ impl State {
     }
 
     /// 回転記号を指定してキューブを動かす。定義からわかるがselfは変化しない。
-    pub fn apply_moves(&self, moves: &HashMap<String, State>, mvs: &str) -> State {
+    pub fn apply_moves(&self, mvs: &str) -> Result<State, String> {
+        let mut p = *self.p;
+
+        for name in mvs.split_whitespace() {
+            if let Some(move_enum) = moves::name2enum(name) {
+                let mv = &moves::MOVES_P[move_enum as usize];
+
+                for (i, v) in p.into_iter().enumerate() {
+                    p[i] = mv[v as usize]
+                }
+            } else {
+                return Err(format!("無効な操作: {}", name));
+            }
+        }
+
+        Ok(State { p: Box::new(p) })
+    }
+
+    /// 回転記号を指定してキューブを動かす。定義からわかるがselfは変化しない。
+    pub fn apply_arg_moves(&self, moves: &HashMap<String, State>, mvs: &str) -> Result<State, String> {
         let mut cube = self.clone();
 
         for name in mvs.split_whitespace() {
             match moves.get(name) {
-                None => eprintln!("無効な操作: {}", name),
+                None => return Err(format!("無効な操作: {}", name)),
                 Some(mv) => cube = cube.apply(mv),
             }
         }
 
-        cube
+        Ok(cube)
     }
 
     /// 指定した動きの逆の動きを取得する。
@@ -286,5 +305,13 @@ impl ops::Mul for &State {
 
     fn mul(self, rhs: Self) -> Self::Output {
         self.apply(rhs)
+    }
+}
+
+impl ops::Mul<&str> for &State {
+    type Output = State;
+
+    fn mul(self, rhs: &str) -> Self::Output {
+        self.apply_moves(rhs).expect("エラー")
     }
 }

@@ -2,12 +2,6 @@ use std::collections::HashMap;
 
 use cube::State;
 
-fn print_state(name: &str, s: &State) {
-    let p = s.get_p();
-
-    println!("    moves.insert(String::from(\"{}\"), State::no_check_new(Box::new({:?})));", name, p);
-}
-
 fn main() {
     let mut moves = HashMap::new();
 
@@ -30,7 +24,7 @@ fn main() {
 
     let solved = State::new_solved();
 
-    let z = solved.apply_moves(&moves, "y y y x y");
+    let z = solved.apply_arg_moves(&moves, "y y y x y").unwrap();
     moves.insert(String::from("z"), z);
 
 
@@ -38,72 +32,119 @@ fn main() {
         vec![0, 2, 8, 6], vec![1, 5, 7, 3]]);
     moves.insert(String::from("U"), u);
 
-    let d = solved.apply_moves(&moves, "x x U x x");
+    let d = solved.apply_arg_moves(&moves, "x x U x x").unwrap();
     moves.insert(String::from("D"), d);
 
-    let r = solved.apply_moves(&moves, "z z z U z");
+    let r = solved.apply_arg_moves(&moves, "z z z U z").unwrap();
     moves.insert(String::from("R"), r);
 
-    let l = solved.apply_moves(&moves, "z U z z z");
+    let l = solved.apply_arg_moves(&moves, "z U z z z").unwrap();
     moves.insert(String::from("L"), l);
 
-    let f = solved.apply_moves(&moves, "x U x x x");
+    let f = solved.apply_arg_moves(&moves, "x U x x x").unwrap();
     moves.insert(String::from("F"), f);
 
-    let b = solved.apply_moves(&moves, "x x x U x");
+    let b = solved.apply_arg_moves(&moves, "x x x U x").unwrap();
     moves.insert(String::from("B"), b);
 
 
-    let m = solved.apply_moves(&moves, "x x x R L L L");
+    let m = solved.apply_arg_moves(&moves, "x x x R L L L").unwrap();
     moves.insert(String::from("M"), m);
 
-    let e = solved.apply_moves(&moves, "y y y U D D D");
+    let e = solved.apply_arg_moves(&moves, "y y y U D D D").unwrap();
     moves.insert(String::from("E"), e);
 
-    let s = solved.apply_moves(&moves, "z F F F B");
+    let s = solved.apply_arg_moves(&moves, "z F F F B").unwrap();
     moves.insert(String::from("S"), s);
 
 
-    let uw = solved.apply_moves(&moves, "U E E E");
+    let uw = solved.apply_arg_moves(&moves, "U E E E").unwrap();
     moves.insert(String::from("u"), uw.clone());
     moves.insert(String::from("Uw"), uw);
 
-    let fw = solved.apply_moves(&moves, "F S");
+    let fw = solved.apply_arg_moves(&moves, "F S").unwrap();
     moves.insert(String::from("f"), fw.clone());
     moves.insert(String::from("Fw"), fw);
 
-    let rw = solved.apply_moves(&moves, "R M M M");
+    let rw = solved.apply_arg_moves(&moves, "R M M M").unwrap();
     moves.insert(String::from("r"), rw.clone());
     moves.insert(String::from("Rw"), rw);
 
-    let bw = solved.apply_moves(&moves, "B S S S");
+    let bw = solved.apply_arg_moves(&moves, "B S S S").unwrap();
     moves.insert(String::from("b"), bw.clone());
     moves.insert(String::from("Bw"), bw);
 
-    let lw = solved.apply_moves(&moves, "L M");
+    let lw = solved.apply_arg_moves(&moves, "L M").unwrap();
     moves.insert(String::from("l"), lw.clone());
     moves.insert(String::from("Lw"), lw);
 
-    let dw = solved.apply_moves(&moves, "D E");
+    let dw = solved.apply_arg_moves(&moves, "D E").unwrap();
     moves.insert(String::from("d"), dw.clone());
     moves.insert(String::from("Dw"), dw);
 
-    for name in [
+    let names = [
         "x", "y", "z",
         "U", "F", "R", "D", "B", "L",
-        "u", "f", "r", "d", "b", "l",
         "Uw", "Fw", "Rw", "Dw", "Bw", "Lw",
         "M", "E", "S",
-    ] {
+    ];
+
+    println!("pub enum MOVES {{");
+
+    for nm in names {
+        let mut nm_iter = nm.chars();
+        let name = nm_iter.next().unwrap().to_uppercase().collect::<String>() + nm_iter.as_str();
+        let name2 = name.clone() + "2";
+        let name_prime = name.clone() + "Prime";
+
+        println!("    {}, {}, {},", name, name2, name_prime);
+    }
+
+    println!("}}");
+
+
+    println!();
+    println!("const MOVES_P: [[u8; 54]; {}] = [", (names.len()*3));
+
+    for name in names {
         let st = moves.get(name).unwrap();
-        print_state(name, st);
+        println!("    {:?},", st.get_p());
 
         let st2 = st * st;
-        let name2 = String::from(name) + "2";
-        print_state(&name2, &st2);
+        println!("    {:?},", st2.get_p());
 
         let st_prime = st.get_prime();
-        let name_prime = String::from(name) + "'";
-        print_state(&name_prime, &st_prime);
+        println!("    {:?},", st_prime.get_p());
     }
+
+    println!("];");
+
+
+    println!();
+    println!("fn name2enum(name: &str) -> Option<MOVES> {{");
+    println!("    match name {{");
+
+    for nm in names {
+        let mut nm_iter = nm.chars();
+        let name = nm_iter.next().unwrap().to_uppercase().collect::<String>() + nm_iter.as_str();
+        let name2 = name.clone() + "2";
+        let name_prime = name.clone() + "Prime";
+
+        println!("        \"{}\" => Some(MOVES::{}),", nm, name);
+        println!("        \"{}\" => Some(MOVES::{}),", String::from(nm) + "2", name2);
+        println!("        \"{}\" => Some(MOVES::{}),", String::from(nm) + "'", name_prime);
+
+        if nm == "Uw" || nm == "Fw" || nm == "Rw" || nm == "Dw" || nm == "Bw" || nm == "Lw" {
+            let mut w_nm_iter = nm.chars();
+            let w_name = w_nm_iter.next().unwrap().to_lowercase().collect::<String>();
+
+            println!("        \"{}\" => Some(MOVES::{}),", &w_name, name);
+            println!("        \"{}\" => Some(MOVES::{}),", String::from(&w_name) + "2", name2);
+            println!("        \"{}\" => Some(MOVES::{}),", String::from(&w_name) + "'", name_prime);
+        }
+    }
+
+    println!("        _  => None,");
+    println!("    }}");
+    println!("}}");
 }

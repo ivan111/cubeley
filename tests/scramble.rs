@@ -2,11 +2,9 @@ use cube;
 
 #[test]
 fn test_scramble() {
-    let moves = cube::moves::new();
-
     let solved = cube::State::new_solved();
     let scramble = "U' F' D2 R U2 R' U2 F2 R D2 L2 D2 R' B U' L' B2 D2 B2 U2";
-    let cb = solved.apply_moves(&moves, scramble);
+    let cb = &solved * scramble;
 
     let w = cube::Color::White;
     let g = cube::Color::Green;
@@ -25,11 +23,9 @@ fn test_scramble() {
 
 #[test]
 fn test_checkered_pattern() {
-    let moves = cube::moves::new();
-
     let solved = cube::State::new_solved();
     let scramble = "M2 E2 S2";
-    let cb = solved.apply_moves(&moves, scramble);
+    let cb = &solved * scramble;
 
     let w = cube::Color::White;
     let g = cube::Color::Green;
