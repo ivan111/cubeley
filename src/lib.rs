@@ -136,16 +136,20 @@ impl State {
     }
 
     /// キューブがそろっているならtrueを返す。
-    /// 回転記号x, y, z, E, M, Sなどセンターキューブを動かしていない場合は、
-    /// SOLVEDと==で比較したほうが速い。
-    pub fn is_solved(&self) -> bool {
-        let p = &self.get_prime().p;
+    /// 回転記号x, y, z, E, M, Sなどセンターキューブを動かしていない場合のみ使用可能。
+    pub fn is_solved0(&self) -> bool {
+        *self.p == SOLVED_P
+    }
 
-        p[1..9].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[p[0] as usize]) &&
-        p[10..18].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[p[9] as usize]) &&
-        p[19..27].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[p[18] as usize]) &&
-        p[28..36].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[p[27] as usize]) &&
-        p[37..45].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[p[36] as usize])
+    /// キューブがそろっているならtrueを返す。
+    /// 回転記号x, y, z, E, M, Sなどセンターキューブを動かしていない場合は、
+    /// is_solved0で比較したほうが速い。
+    pub fn is_solved(&self) -> bool {
+        self.p[1..9].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[self.p[0] as usize]) &&
+        self.p[10..18].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[self.p[9] as usize]) &&
+        self.p[19..27].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[self.p[18] as usize]) &&
+        self.p[28..36].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[self.p[27] as usize]) &&
+        self.p[37..45].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[self.p[36] as usize])
     }
 
     /// キューブを動かす。定義からわかるがselfは変化しない。
