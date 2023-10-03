@@ -40,6 +40,20 @@ fn is_move_available(prev_move: Option<&String>, cur_move: &str) -> bool {
     true
 }
 
+// 探索木から探索の必要のない幹を刈る
+// trueを返したらそれ以上探索しないでいい
+fn miki_prune(state: &State, depth: i32) -> bool {
+    let cc = state.count_solved0_corners();
+    let ce = state.count_solved0_edges();
+
+    match depth {
+        1 => cc < 4 || ce < 8,
+        2 => ce < 4,
+        3 => ce < 2,
+        _ => false,
+    }
+}
+
 const MOVE_NAMES: [&str; 18] = [
 "U", "F", "R", "D", "B", "L",
 "U2", "F2", "R2", "D2", "B2", "L2",
@@ -54,6 +68,10 @@ fn depth_limited_search(state: &State, solution: &mut Vec<String>, depth: i32) -
 
     if depth == 0 {
         return false;
+    }
+
+    if miki_prune(state, depth) {
+        return false
     }
 
     for move_name in MOVE_NAMES {

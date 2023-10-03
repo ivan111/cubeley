@@ -152,6 +152,30 @@ impl State {
         self.p[37..45].iter().all(|c| COLOR_MAP[*c as usize] == COLOR_MAP[self.p[36] as usize])
     }
 
+    pub fn count_solved0_corners(&self) -> i32 {
+        let mut count = 0;
+
+        for i in [0, 2, 6, 8, 27, 29, 33, 35] {
+            if self.p[i] as usize == i {
+                count += 1;
+            }
+        }
+
+        count
+    }
+
+    pub fn count_solved0_edges(&self) -> i32 {
+        let mut count = 0;
+
+        for i in [1, 3, 5, 7, 12, 14, 39, 41, 28, 30, 32, 34] {
+            if self.p[i] as usize == i {
+                count += 1;
+            }
+        }
+
+        count
+    }
+
     /// キューブを動かす。定義からわかるがselfは変化しない。
     pub fn apply(&self, mv: &State) -> State {
         let mut p = [0; NUM_P];
