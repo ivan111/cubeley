@@ -73,6 +73,36 @@ const SOLVED_P: [u8; NUM_P] = [
 ];
 
 
+/// 最大公約数
+fn gcd(mut a: usize, mut b: usize) -> usize {
+    while b != 0 {
+        (a, b) = (b, a % b)
+    }
+
+    a
+}
+
+#[test]
+fn test_gcd() {
+    assert_eq!(gcd(2, 3), 1);
+    assert_eq!(gcd(4, 2), 2);
+    assert_eq!(gcd(247, 962), 13);
+}
+
+
+/// 最小公倍数
+fn lcm(a: usize, b: usize) -> usize {
+    a / gcd(a, b) * b
+}
+
+#[test]
+fn test_lcm() {
+    assert_eq!(lcm(2, 3), 6);
+    assert_eq!(lcm(4, 2), 4);
+    assert_eq!(lcm(247, 962), 18278);
+}
+
+
 impl State {
     /// 上が白で、前が緑の新しいキューブを作る。
     pub fn new_solved() -> State {
@@ -308,6 +338,11 @@ impl State {
         }
 
         pcp
+    }
+
+    /// 何回この操作を繰り返すと元に戻るかを返す
+    pub fn get_period(&self) -> usize {
+        self.get_cycles().iter().map(|v| v.len()).reduce(lcm).unwrap_or(0)
     }
 
     /// 巡回置換の積を出力する。

@@ -21,7 +21,7 @@ macro_rules! inv_face {
 // - 同じ面は連続して回さない (e.g. R' R2 は不可)
 // - 対面を回すときは順序を固定する (e.g. D Uは良いが、U Dは不可)
 fn is_move_available(prev_move: Option<&String>, cur_move: &str) -> bool {
-    if prev_move == None {
+    if prev_move.is_none() {
         return true  // 最初の一手はどの操作も可能
     }
 
@@ -96,7 +96,7 @@ fn start_search(state: &State, max_length: i32) -> Option<Vec<String>> {
 
     for depth in 0..max_length {
         println!("Start searching length {}", depth);
-        if depth_limited_search(&state, &mut solution, depth) {
+        if depth_limited_search(state, &mut solution, depth) {
             return Some(solution);
         }
     }
