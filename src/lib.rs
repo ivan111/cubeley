@@ -103,6 +103,12 @@ fn test_lcm() {
 }
 
 
+impl Default for State {
+    fn default() -> State {
+        State::new_solved()
+    }
+}
+
 impl State {
     /// 上が白で、前が緑の新しいキューブを作る。
     pub fn new_solved() -> State {
@@ -112,6 +118,11 @@ impl State {
     /// 指定した動きを取得する。
     pub fn get_move(name: moves::MOVES) -> State {
         State { p: Box::new(moves::MOVES_P[name as usize]) }
+    }
+
+    /// 指定した動きを取得する。
+    pub fn get_move_by_name(name: &str) -> Option<State> {
+        moves::get_move(name)
     }
 
     /// 新しいキューブを作る。
@@ -222,11 +233,9 @@ impl State {
         let mut p = *self.p;
 
         for name in mvs.split_whitespace() {
-            if let Some(move_enum) = moves::name2enum(name) {
-                let mv = &moves::MOVES_P[move_enum as usize];
-
+            if let Some(mv) = State::get_move_by_name(name) {
                 for (i, v) in p.into_iter().enumerate() {
-                    p[i] = mv[v as usize]
+                    p[i] = mv.p[v as usize]
                 }
             } else {
                 return Err(format!("無効な操作: {}", name));

@@ -1,3 +1,8 @@
+use std::collections::HashMap;
+use std::sync::OnceLock;
+
+use crate::State;
+
 #[derive(Clone, Copy)]
 pub enum MOVES {
     X, X2, XPrime,
@@ -77,80 +82,87 @@ pub(super) static MOVES_P: [[u8; 54]; 54] = [
     [0, 1, 2, 52, 49, 46, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 3, 20, 21, 4, 23, 24, 5, 26, 27, 28, 29, 25, 22, 19, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 30, 47, 48, 31, 50, 51, 32, 53],
 ];
 
-pub(super) fn name2enum(name: &str) -> Option<MOVES> {
-    match name {
-        "x" => Some(MOVES::X),
-        "x2" => Some(MOVES::X2),
-        "x'" => Some(MOVES::XPrime),
-        "y" => Some(MOVES::Y),
-        "y2" => Some(MOVES::Y2),
-        "y'" => Some(MOVES::YPrime),
-        "z" => Some(MOVES::Z),
-        "z2" => Some(MOVES::Z2),
-        "z'" => Some(MOVES::ZPrime),
-        "U" => Some(MOVES::U),
-        "U2" => Some(MOVES::U2),
-        "U'" => Some(MOVES::UPrime),
-        "F" => Some(MOVES::F),
-        "F2" => Some(MOVES::F2),
-        "F'" => Some(MOVES::FPrime),
-        "R" => Some(MOVES::R),
-        "R2" => Some(MOVES::R2),
-        "R'" => Some(MOVES::RPrime),
-        "D" => Some(MOVES::D),
-        "D2" => Some(MOVES::D2),
-        "D'" => Some(MOVES::DPrime),
-        "B" => Some(MOVES::B),
-        "B2" => Some(MOVES::B2),
-        "B'" => Some(MOVES::BPrime),
-        "L" => Some(MOVES::L),
-        "L2" => Some(MOVES::L2),
-        "L'" => Some(MOVES::LPrime),
-        "Uw" => Some(MOVES::Uw),
-        "Uw2" => Some(MOVES::Uw2),
-        "Uw'" => Some(MOVES::UwPrime),
-        "u" => Some(MOVES::Uw),
-        "u2" => Some(MOVES::Uw2),
-        "u'" => Some(MOVES::UwPrime),
-        "Fw" => Some(MOVES::Fw),
-        "Fw2" => Some(MOVES::Fw2),
-        "Fw'" => Some(MOVES::FwPrime),
-        "f" => Some(MOVES::Fw),
-        "f2" => Some(MOVES::Fw2),
-        "f'" => Some(MOVES::FwPrime),
-        "Rw" => Some(MOVES::Rw),
-        "Rw2" => Some(MOVES::Rw2),
-        "Rw'" => Some(MOVES::RwPrime),
-        "r" => Some(MOVES::Rw),
-        "r2" => Some(MOVES::Rw2),
-        "r'" => Some(MOVES::RwPrime),
-        "Dw" => Some(MOVES::Dw),
-        "Dw2" => Some(MOVES::Dw2),
-        "Dw'" => Some(MOVES::DwPrime),
-        "d" => Some(MOVES::Dw),
-        "d2" => Some(MOVES::Dw2),
-        "d'" => Some(MOVES::DwPrime),
-        "Bw" => Some(MOVES::Bw),
-        "Bw2" => Some(MOVES::Bw2),
-        "Bw'" => Some(MOVES::BwPrime),
-        "b" => Some(MOVES::Bw),
-        "b2" => Some(MOVES::Bw2),
-        "b'" => Some(MOVES::BwPrime),
-        "Lw" => Some(MOVES::Lw),
-        "Lw2" => Some(MOVES::Lw2),
-        "Lw'" => Some(MOVES::LwPrime),
-        "l" => Some(MOVES::Lw),
-        "l2" => Some(MOVES::Lw2),
-        "l'" => Some(MOVES::LwPrime),
-        "M" => Some(MOVES::M),
-        "M2" => Some(MOVES::M2),
-        "M'" => Some(MOVES::MPrime),
-        "E" => Some(MOVES::E),
-        "E2" => Some(MOVES::E2),
-        "E'" => Some(MOVES::EPrime),
-        "S" => Some(MOVES::S),
-        "S2" => Some(MOVES::S2),
-        "S'" => Some(MOVES::SPrime),
-        _  => None,
-    }
+static MOVE_MAP: OnceLock<HashMap<String, State>> = OnceLock::new();
+
+pub(super) fn get_move(name: &str) -> Option<State> {
+    let m = MOVE_MAP.get_or_init(|| {
+        let mut m = HashMap::new();
+
+        m.insert(String::from("x"), State::get_move(MOVES::X));
+        m.insert(String::from("x2"), State::get_move(MOVES::X2));
+        m.insert(String::from("x'"), State::get_move(MOVES::XPrime));
+        m.insert(String::from("y"), State::get_move(MOVES::Y));
+        m.insert(String::from("y2"), State::get_move(MOVES::Y2));
+        m.insert(String::from("y'"), State::get_move(MOVES::YPrime));
+        m.insert(String::from("z"), State::get_move(MOVES::Z));
+        m.insert(String::from("z2"), State::get_move(MOVES::Z2));
+        m.insert(String::from("z'"), State::get_move(MOVES::ZPrime));
+        m.insert(String::from("U"), State::get_move(MOVES::U));
+        m.insert(String::from("U2"), State::get_move(MOVES::U2));
+        m.insert(String::from("U'"), State::get_move(MOVES::UPrime));
+        m.insert(String::from("F"), State::get_move(MOVES::F));
+        m.insert(String::from("F2"), State::get_move(MOVES::F2));
+        m.insert(String::from("F'"), State::get_move(MOVES::FPrime));
+        m.insert(String::from("R"), State::get_move(MOVES::R));
+        m.insert(String::from("R2"), State::get_move(MOVES::R2));
+        m.insert(String::from("R'"), State::get_move(MOVES::RPrime));
+        m.insert(String::from("D"), State::get_move(MOVES::D));
+        m.insert(String::from("D2"), State::get_move(MOVES::D2));
+        m.insert(String::from("D'"), State::get_move(MOVES::DPrime));
+        m.insert(String::from("B"), State::get_move(MOVES::B));
+        m.insert(String::from("B2"), State::get_move(MOVES::B2));
+        m.insert(String::from("B'"), State::get_move(MOVES::BPrime));
+        m.insert(String::from("L"), State::get_move(MOVES::L));
+        m.insert(String::from("L2"), State::get_move(MOVES::L2));
+        m.insert(String::from("L'"), State::get_move(MOVES::LPrime));
+        m.insert(String::from("Uw"), State::get_move(MOVES::Uw));
+        m.insert(String::from("Uw2"), State::get_move(MOVES::Uw2));
+        m.insert(String::from("Uw'"), State::get_move(MOVES::UwPrime));
+        m.insert(String::from("u"), State::get_move(MOVES::Uw));
+        m.insert(String::from("u2"), State::get_move(MOVES::Uw2));
+        m.insert(String::from("u'"), State::get_move(MOVES::UwPrime));
+        m.insert(String::from("Fw"), State::get_move(MOVES::Fw));
+        m.insert(String::from("Fw2"), State::get_move(MOVES::Fw2));
+        m.insert(String::from("Fw'"), State::get_move(MOVES::FwPrime));
+        m.insert(String::from("f"), State::get_move(MOVES::Fw));
+        m.insert(String::from("f2"), State::get_move(MOVES::Fw2));
+        m.insert(String::from("f'"), State::get_move(MOVES::FwPrime));
+        m.insert(String::from("Rw"), State::get_move(MOVES::Rw));
+        m.insert(String::from("Rw2"), State::get_move(MOVES::Rw2));
+        m.insert(String::from("Rw'"), State::get_move(MOVES::RwPrime));
+        m.insert(String::from("r"), State::get_move(MOVES::Rw));
+        m.insert(String::from("r2"), State::get_move(MOVES::Rw2));
+        m.insert(String::from("r'"), State::get_move(MOVES::RwPrime));
+        m.insert(String::from("Dw"), State::get_move(MOVES::Dw));
+        m.insert(String::from("Dw2"), State::get_move(MOVES::Dw2));
+        m.insert(String::from("Dw'"), State::get_move(MOVES::DwPrime));
+        m.insert(String::from("d"), State::get_move(MOVES::Dw));
+        m.insert(String::from("d2"), State::get_move(MOVES::Dw2));
+        m.insert(String::from("d'"), State::get_move(MOVES::DwPrime));
+        m.insert(String::from("Bw"), State::get_move(MOVES::Bw));
+        m.insert(String::from("Bw2"), State::get_move(MOVES::Bw2));
+        m.insert(String::from("Bw'"), State::get_move(MOVES::BwPrime));
+        m.insert(String::from("b"), State::get_move(MOVES::Bw));
+        m.insert(String::from("b2"), State::get_move(MOVES::Bw2));
+        m.insert(String::from("b'"), State::get_move(MOVES::BwPrime));
+        m.insert(String::from("Lw"), State::get_move(MOVES::Lw));
+        m.insert(String::from("Lw2"), State::get_move(MOVES::Lw2));
+        m.insert(String::from("Lw'"), State::get_move(MOVES::LwPrime));
+        m.insert(String::from("l"), State::get_move(MOVES::Lw));
+        m.insert(String::from("l2"), State::get_move(MOVES::Lw2));
+        m.insert(String::from("l'"), State::get_move(MOVES::LwPrime));
+        m.insert(String::from("M"), State::get_move(MOVES::M));
+        m.insert(String::from("M2"), State::get_move(MOVES::M2));
+        m.insert(String::from("M'"), State::get_move(MOVES::MPrime));
+        m.insert(String::from("E"), State::get_move(MOVES::E));
+        m.insert(String::from("E2"), State::get_move(MOVES::E2));
+        m.insert(String::from("E'"), State::get_move(MOVES::EPrime));
+        m.insert(String::from("S"), State::get_move(MOVES::S));
+        m.insert(String::from("S2"), State::get_move(MOVES::S2));
+        m.insert(String::from("S'"), State::get_move(MOVES::SPrime));
+
+        m
+    });
+
+    m.get(name).cloned()
 }
